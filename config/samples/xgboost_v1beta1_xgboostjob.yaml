@@ -1,0 +1,9 @@
+apiVersion: xgboost.github.com/v1beta1
+kind: XGboostJob
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: xgboostjob-sample
+spec:
+  # Add fields here
+  foo: bar
