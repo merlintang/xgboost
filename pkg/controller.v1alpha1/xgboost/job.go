@@ -1,8 +1,8 @@
 package xgboost
 
 import (
-"fmt"
-	"github.com/kubeflow/pytorch-operator/pkg/apis/pytorch/v1beta1"
+	"fmt"
+
 	"k8s.io/client-go/tools/cache"
 	"time"
 	log "github.com/sirupsen/logrus"
@@ -13,15 +13,15 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	v1alpha1 "github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
-	common "github.com/kubeflow/tf-operator/pkg/apis/common/v1beta1"
+	common "github.com/kubeflow/common/operator/v1"
 	pylogger "github.com/kubeflow/tf-operator/pkg/logger"
 )
 
 const (
-	failedMarshalPyTorchJobReason = "InvalidXGBoostJobSpec"
+	failedMarshalXGBoostJobReason = "InvalidXGBoostJobSpec"
 )
 
-// When a pod is added, set the defaults and enqueue the current pytorchjob.
+// When a pod is added, set the defaults and enqueue the current xgboostjob.
 func (pc *XGboostController) addXGBoostJob(obj interface{}) {
 	/// TODO
 }
@@ -37,17 +37,17 @@ func (pc *XGboostController) enqueueXGBoostJob(job interface{}) {
 	pc.WorkQueue.Add(key)
 }
 
-// When a pod is updated, enqueue the current pytorchjob.
+// When a pod is updated, enqueue the current xgboostjob.
 func (pc *XGboostController) updateXGBoostJob(old, cur interface{}) {
-	oldPyTorchJob, err := jobFromUnstructured(old)
+	oldXGBJob, err := jobFromUnstructured(old)
 	if err != nil {
 		return
 	}
-	log.Infof("Updating pytorchjob: %s", oldPyTorchJob.Name)
+	log.Infof("Updating xgboostjob: %s", oldXGBJob.Name)
 	pc.enqueueXGBoostJob(cur)
 }
 
-func (pc *XGboostController) deletePodsAndServices(job *v1beta1.PyTorchJob, pods []*v1.Pod) error {
+func (pc *XGboostController) deletePodsAndServices(job *v1alpha1.XGBoostJob, pods []*v1.Pod) error {
 	if len(pods) == 0 {
 		return nil
 	}
@@ -69,16 +69,18 @@ func (pc *XGboostController) deletePodsAndServices(job *v1beta1.PyTorchJob, pods
 	return nil
 }
 
-func (pc *XGboostController) cleanupPyTorchJob(job *v1alpha1.XGBoostJob) error {
+func (pc *XGboostController) cleanupXGBoostJob(job *v1alpha1.XGBoostJob) error {
 	///TODO
+	return nil
 }
 
-// deletePyTorchJob deletes the given XGBoostJob.
+// deleteXGBoostJob deletes the given XGBoostJob.
 func (pc *XGboostController) deleteXGBoostJob(job *v1alpha1.XGBoostJob) error {
 	///TODO
+	return nil
 }
 
-// syncPyTorchJob syncs the job with the given key if it has had its expectations fulfilled, meaning
+// syncXGBoostJob syncs the job with the given key if it has had its expectations fulfilled, meaning
 // it did not expect to see any more of its pods/services created or deleted.
 // This function is not meant to be invoked concurrently with the same key.
 func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
@@ -99,7 +101,7 @@ func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
 	sharedJob, err := pc.getXGboostJobFromName(namespace, name)
 	if err != nil {
 		if err == errNotExists {
-			logger.Infof("PyTorchJob has been deleted: %v", key)
+			logger.Infof("XGBoostJob has been deleted: %v", key)
 			// jm.expectations.DeleteExpectations(key)
 			return true, nil
 		}
@@ -120,13 +122,13 @@ func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
 	// Set default for the new job.
 	scheme.Scheme.Default(job)
 
-	var reconcilePyTorchJobsErr error
+	var reconcileXGBJobsErr error
 	if jobNeedsSync && job.DeletionTimestamp == nil {
-		reconcilePyTorchJobsErr = pc.reconcilePyTorchJobs(job)
+		reconcileXGBJobsErr = pc.reconcileXGBoostJobs(job)
 	}
 
-	if reconcilePyTorchJobsErr != nil {
-		return false, reconcilePyTorchJobsErr
+	if reconcileXGBJobsErr != nil {
+		return false, reconcileXGBJobsErr
 	}
 
 	return true, err
@@ -141,10 +143,11 @@ func getTotalReplicas(obj metav1.Object) int32 {
 	return jobReplicas
 }
 
-// reconcilePyTorchJobs checks and updates replicas for each given PyTorchReplicaSpec.
+// reconcileXGBoostJobs checks and updates replicas for each given XGBoostJobReplicaSpec.
 // It will requeue the job in case of an error while creating/deleting pods/services.
-func (pc *XGboostController) reconcilePyTorchJobs(job *v1alpha1.XGBoostJob) error {
+func (pc *XGboostController) reconcileXGBoostJobs(job *v1alpha1.XGBoostJob) error {
 	///TODO
+	return nil
 }
 
 // satisfiedExpectations returns true if the required adds/dels for the given job have been observed.
@@ -152,4 +155,5 @@ func (pc *XGboostController) reconcilePyTorchJobs(job *v1alpha1.XGBoostJob) erro
 // manager.
 func (pc *XGboostController) satisfiedExpectations(job *v1alpha1.XGBoostJob) bool {
 	///TODO
+	return false
 }

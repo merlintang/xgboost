@@ -18,30 +18,20 @@ import (
 	"fmt"
 	"time"
 
-	kubebatchclient "github.com/kubernetes-sigs/kube-batch/pkg/client/clientset/versioned"
 	log "github.com/sirupsen/logrus"
-	kubeclientset "k8s.io/client-go/kubernetes"
-	kubeinformers "k8s.io/client-go/informers"
+
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeflow/common/job_controller"
-	"github.com/kubeflow/tf-operator/pkg/common/jobcontroller"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
 
-	options "github.com/kubeflow/xgboost-operator/cmd/xgboost-operator.v1alpha1/app/options"
-
 	jobclientset "github.com/kubeflow/xgboost-operator/pkg/client/clientset/versioned"
 	joblisters "github.com/kubeflow/xgboost-operator/pkg/client/listers/xgboost/v1alpha1"
-
-	jobscheme "github.com/kubeflow/xgboost-operator/pkg/client/clientset/versioned/scheme"
-	jobinformers "github.com/kubeflow/xgboost-operator/pkg/client/informers/externalversions"
-	jobinformersv1beta1 "github.com/kubeflow/xgboost-operator/pkg/client/informers/externalversions/xgboost/v1alpha1"
 
 	pylogger "github.com/kubeflow/tf-operator/pkg/logger"
 )
@@ -70,7 +60,7 @@ var (
 	}
 )
 
-// XGboostController is the type for XGBoostJob Controller, which manages
+// XGBoostController is the type for XGBoostJob Controller, which manages
 // the lifecycle of XGboostJobs.
 type XGboostController struct {
 	job_controller.JobController
@@ -98,79 +88,6 @@ type XGboostController struct {
 	jobInformerSynced cache.InformerSynced
 }
 
-// NewPyTorchController returns a new PyTorchJob controller.
-func NewPyTorchController(
-// This variable is for unstructured informer.
-	jobInformer jobinformersv1beta1.XGBoostJobInformer,
-	kubeClientSet kubeclientset.Interface,
-	kubeBatchClientSet kubebatchclient.Interface,
-	jobClientSet jobclientset.Interface,
-	kubeInformerFactory kubeinformers.SharedInformerFactory,
-// This field is not used now but we keep it since it will be used
-// after we support CRD validation.
-	jobInformerFactory jobinformers.SharedInformerFactory,
-	option options.ServerOption) *XGboostController {
-
-	jobscheme.AddToScheme(scheme.Scheme)
-
-	log.Info("Creating XGboostJob controller")
-	// Create new XGboostController.
-	pc := &XGboostController{
-		jobClientSet: jobClientSet,
-	}
-
-	// Create base controller
-	log.Info("Creating Job controller")
-	jc := jobcontroller.NewJobController(pc, metav1.Duration{Duration: 15 * time.Second},
-		option.EnableGangScheduling, kubeClientSet, kubeBatchClientSet, kubeInformerFactory, v1alpha1.Plural)
-	pc.JobController = jc
-	// Set sync handler.
-	pc.syncHandler = pc.syncXGBoostJob
-	pc.updateStatusHandler = pc.updateXGBoostJobStatus
-	// set delete handler.
-	pc.deleteXGboostJobHandler = pc.deleteXGBoostJob
-	// Set up an event handler for when job resources change.
-	jobInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    pc.addXGBoostJob,
-		UpdateFunc: pc.updateXGBoostJob,
-		// This will enter the sync loop and no-op,
-		// because the job has been deleted from the store.
-		DeleteFunc: pc.enqueueXGBoostJob,
-	})
-
-	pc.jobInformer = jobInformer.Informer()
-	pc.jobLister = jobInformer.Lister()
-	pc.jobInformerSynced = jobInformer.Informer().HasSynced
-
-	// Create pod informer.
-	podInformer := kubeInformerFactory.Core().V1().Pods()
-
-	// Set up an event handler for when pod resources change
-	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    jc.AddPod,
-		UpdateFunc: jc.UpdatePod,
-		DeleteFunc: jc.DeletePod,
-	})
-
-	pc.PodLister = podInformer.Lister()
-	pc.PodInformerSynced = podInformer.Informer().HasSynced
-
-	// Create service informer.
-	serviceInformer := kubeInformerFactory.Core().V1().Services()
-
-	// Set up an event handler for when service resources change.
-	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    jc.AddService,
-		UpdateFunc: jc.UpdateService,
-		DeleteFunc: jc.DeleteService,
-	})
-
-	pc.ServiceLister = serviceInformer.Lister()
-	pc.ServiceInformerSynced = serviceInformer.Informer().HasSynced
-
-	return pc
-}
-
 // Run will set up the event handlers for types we are interested in, as well
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
@@ -180,7 +97,7 @@ func (pc *XGboostController) Run(threadiness int, stopCh <-chan struct{}) error 
 	defer pc.WorkQueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches.
-	log.Info("Starting PyTorchJob controller")
+	log.Info("Starting XGBoostJob controller")
 
 	// Wait for the caches to be synced before starting workers.
 	log.Info("Waiting for informer caches to sync")
@@ -190,7 +107,7 @@ func (pc *XGboostController) Run(threadiness int, stopCh <-chan struct{}) error 
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 	log.Infof("Starting %v workers", threadiness)
-	// Launch workers to process PyTorchJob resources.
+	// Launch workers to process XGBoostJob resources.
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(pc.runWorker, time.Second, stopCh)
 	}
@@ -235,22 +152,22 @@ func (pc *XGboostController) processNextWorkItem() bool {
 	xgboostjob, err := pc.getXGboostJobFromKey(key)
 	if err != nil {
 		if err == errNotExists {
-			logger.Infof("PyTorchJob has been deleted: %v", key)
+			logger.Infof("XGBoostJob has been deleted: %v", key)
 			return true
 		}
 
 		// Log the failure to conditions.
-		logger.Errorf("Failed to get PyTorchJob from key %s: %v", key, err)
+		logger.Errorf("Failed to get XGBoostJob from key %s: %v", key, err)
 		if err == errFailedMarshal {
-			errMsg := fmt.Sprintf("Failed to unmarshal the object to PyTorchJob object: %v", err)
-			pylogger.LoggerForJob(xgboostjob).Warn(errMsg)
-			pc.Recorder.Event(xgboostjob, v1.EventTypeWarning, failedMarshalPyTorchJobReason, errMsg)
+			errMsg := fmt.Sprintf("Failed to unmarshal the object to XGBoostJob object: %v", err)
+			/// pylogger.LoggerForJob(xgboostjob).Warn(errMsg)
+			pc.Recorder.Event(xgboostjob, v1.EventTypeWarning, failedMarshalXGBoostJobReason, errMsg)
 		}
 
 		return true
 	}
 
-	// Sync PyTorchJob to mapch the actual state to this desired state.
+	// Sync XGBoostJob to mapch the actual state to this desired state.
 	forget, err := pc.syncHandler(key)
 	if err == nil {
 		if forget {
@@ -272,7 +189,8 @@ func (pc *XGboostController) GetJobFromInformerCache(namespace, name string) (me
 }
 
 func (pc *XGboostController) GetJobFromAPIClient(namespace, name string) (metav1.Object, error) {
-	return pc.jobClientSet.KubeflowV1alpha1().XGBoostJobs(namespace).Get(name, metav1.GetOptions{})
+	////TODO
+	return nil, nil
 }
 
 func (pc *XGboostController) GetAPIGroupVersionKind() schema.GroupVersionKind {

@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
-	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/validation"
 	pylogger "github.com/kubeflow/tf-operator/pkg/logger"
 )
 
 const (
 	resyncPeriod     = 30 * time.Second
-	failedMarshalMsg = "Failed to marshal the object to PyTorchJob: %v"
+	failedMarshalMsg = "Failed to marshal the object to XGBoostJob: %v"
 )
 
 var (
@@ -34,7 +33,7 @@ func (pc *XGboostController) getXGboostJobFromKey(key string) (*v1alpha1.XGBoost
 	obj, exists, err := pc.jobInformer.GetIndexer().GetByKey(key)
 	logger := pylogger.LoggerForKey(key)
 	if err != nil {
-		logger.Errorf("Failed to get PyTorchJob '%s' from informer index: %+v", key, err)
+		logger.Errorf("Failed to get XGBoostJob '%s' from informer index: %+v", key, err)
 		return nil, errGetFromKey
 	}
 	if !exists {
@@ -54,13 +53,16 @@ func jobFromUnstructured(obj interface{}) (*v1alpha1.XGBoostJob, error) {
 	}
 	var job v1alpha1.XGBoostJob
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un.Object, &job)
-	logger := pylogger.LoggerForUnstructured(un, v1alpha1.Kind)
+	/// logger := pylogger.LoggerForUnstructured(un, v1alpha1.Kind)
+	logger := pylogger.LoggerForKey(v1alpha1.Kind)
 	if err != nil {
 		logger.Errorf(failedMarshalMsg, err)
 		return nil, errFailedMarshal
 	}
 
-	err = validation.ValidateBetaOneXGboostJobSpec(&job.Spec)
+	/// TODO add this back when validating is ready
+	/// err = validation.ValidateBetaOneXGboostJobSpec(&job.Spec)
+
 	if err != nil {
 		logger.Errorf(failedMarshalMsg, err)
 		return nil, errFailedMarshal

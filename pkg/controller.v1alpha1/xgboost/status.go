@@ -6,25 +6,27 @@ import (
 )
 
 const (
-	// pytorchJobCreatedReason is added in a job when it is created.
-	xgboostJobCreatedReason = "PyTorchJobCreated"
-	// pytorchJobSucceededReason is added in a job when it is succeeded.
-	pytorchJobSucceededReason = "PyTorchJobSucceeded"
-	// pytorchJobSucceededReason is added in a job when it is running.
-	pytorchJobRunningReason = "PyTorchJobRunning"
-	// pytorchJobSucceededReason is added in a job when it is failed.
-	pytorchJobFailedReason = "PyTorchJobFailed"
-	// pytorchJobRestarting is added in a job when it is restarting.
-	pytorchJobRestartingReason = "PyTorchJobRestarting"
+	// xgboostJobCreatedReason is added in a job when it is created.
+	xgboostJobCreatedReason = "XGBoostJobCreated"
+	// xgboostJobSucceededReason is added in a job when it is succeeded.
+	xgboostJobSucceededReason = "XGBoostJobSucceeded"
+	// xgboostJobSucceededReason is added in a job when it is running.
+	xgboostJobRunningReason = "XGBoostJobRunning"
+	// xgboostJobSucceededReason is added in a job when it is failed.
+	xgboostJobFailedReason = "XGBoostJobFailed"
+	// xgboostJobRestarting is added in a job when it is restarting.
+	xgboostJobRestartingReason = "XGBoostJobRestarting"
 )
 
 
-// updatePyTorchJobStatus updates the status of the given PyTorchJob.
+// updateXGBoostJobStatus updates the status of the given XGBoostJob.
 func (pc *XGboostController) updateXGBoostJobStatus(job *v1alpha1.XGBoostJob) error {
 	///TODO
+	return nil
 }
 
-// updatePyTorchJobConditions updates the conditions of the given job.
+// updateXGBoostJobConditions updates the conditions of the given job.
 func updateXGBoostJobConditions(job *v1alpha1.XGBoostJob, conditionType common.JobConditionType, reason, message string) error {
 	///TODO
+	return nil
 }

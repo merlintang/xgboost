@@ -20,8 +20,8 @@ import (
 	"github.com/onrik/logrus/filename"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kubeflow/pytorch-operator/cmd/pytorch-operator.v1beta1/app"
-	"github.com/kubeflow/pytorch-operator/cmd/pytorch-operator.v1beta1/app/options"
+	"github.com/kubeflow/xgboost-operator/cmd/xgboost-operator.v1beta1/app"
+	"github.com/kubeflow/xgboost-operator/cmd/xgboost-operator.v1beta1/app/options"
 )
 
 func init() {
