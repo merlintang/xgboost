@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
 
-	"github.com/kubeflow/xgboost-operator/cmd/xgboost-operator.v1alpha1/app/options"
+	options "github.com/kubeflow/xgboost-operator/cmd/xgboost-operator.v1alpha1/app/options"
 
 	jobclientset "github.com/kubeflow/xgboost-operator/pkg/client/clientset/versioned"
 	joblisters "github.com/kubeflow/xgboost-operator/pkg/client/listers/xgboost/v1alpha1"

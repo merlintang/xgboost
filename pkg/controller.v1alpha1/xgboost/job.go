@@ -3,19 +3,18 @@ package xgboost
 import (
 "fmt"
 	"github.com/kubeflow/pytorch-operator/pkg/apis/pytorch/v1beta1"
+	"k8s.io/client-go/tools/cache"
 	"time"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-log "github.com/sirupsen/logrus"
-"k8s.io/api/core/v1"
-metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-metav1unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-"k8s.io/apimachinery/pkg/runtime"
-"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-v1alpha1 "github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
-common "github.com/kubeflow/tf-operator/pkg/apis/common/v1beta1"
-pylogger "github.com/kubeflow/tf-operator/pkg/logger"
-"github.com/kubeflow/tf-operator/pkg/util/k8sutil"
+	v1alpha1 "github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
+	common "github.com/kubeflow/tf-operator/pkg/apis/common/v1beta1"
+	pylogger "github.com/kubeflow/tf-operator/pkg/logger"
 )
 
 const (
@@ -24,80 +23,7 @@ const (
 
 // When a pod is added, set the defaults and enqueue the current pytorchjob.
 func (pc *XGboostController) addXGBoostJob(obj interface{}) {
-	// Convert from unstructured object.
-	job, err := jobFromUnstructured(obj)
-	if err != nil {
-		un, ok := obj.(*metav1unstructured.Unstructured)
-		logger := &log.Entry{}
-		if ok {
-			logger = pylogger.LoggerForUnstructured(un, v1alpha1.Kind)
-		}
-		logger.Errorf("Failed to convert the PyTorchJob: %v", err)
-		// Log the failure to conditions.
-		if err == errFailedMarshal {
-			errMsg := fmt.Sprintf("Failed to unmarshal the object to PyTorchJob: Spec is invalid %v", err)
-			logger.Warn(errMsg)
-			pc.Recorder.Event(un, v1.EventTypeWarning, failedMarshalPyTorchJobReason, errMsg)
-
-			status := common.JobStatus{
-				Conditions: []common.JobCondition{
-					common.JobCondition{
-						Type:               common.JobFailed,
-						Status:             v1.ConditionTrue,
-						LastUpdateTime:     metav1.Now(),
-						LastTransitionTime: metav1.Now(),
-						Reason:             failedMarshalPyTorchJobReason,
-						Message:            errMsg,
-					},
-				},
-			}
-
-			statusMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&status)
-
-			if err != nil {
-				logger.Errorf("Could not covert the PyTorchJobStatus to unstructured; %v", err)
-				return
-			}
-
-			client, err := k8sutil.NewCRDRestClient(&v1alpha1.SchemeGroupVersion)
-
-			if err == nil {
-				if err1 := metav1unstructured.SetNestedField(un.Object, statusMap, "status"); err1 != nil {
-					logger.Errorf("Could not set nested field: %v", err1)
-				}
-				logger.Infof("Updating the job to: %+v", un.Object)
-				err = client.Update(un, v1beta1.Plural)
-				if err != nil {
-					logger.Errorf("Could not update the PyTorchJob: %v", err)
-				}
-			} else {
-				logger.Errorf("Could not create a REST client to update the PyTorchJob")
-			}
-		}
-		return
-	}
-
-	// Set default for the new job.
-	scheme.Scheme.Default(job)
-
-	msg := fmt.Sprintf("PyTorchJob %s is created.", job.Name)
-	logger := pylogger.LoggerForJob(job)
-	logger.Info(msg)
-
-	// Add a created condition.
-	err = updateXGBoostJobConditions(job, common.JobCreated, xgboostJobCreatedReason, msg)
-	if err != nil {
-		logger.Errorf("Append job condition error: %v", err)
-		return
-	}
-
-	// Convert from pytorchjob object
-	err = unstructuredFromPyTorchJob(obj, job)
-	if err != nil {
-		logger.Errorf("Failed to convert the obj: %v", err)
-		return
-	}
-	pc.enqueueXGBoostJob(obj)
+	/// TODO
 }
 
 func (pc *XGboostController) enqueueXGBoostJob(job interface{}) {
@@ -144,31 +70,86 @@ func (pc *XGboostController) deletePodsAndServices(job *v1beta1.PyTorchJob, pods
 }
 
 func (pc *XGboostController) cleanupPyTorchJob(job *v1alpha1.XGBoostJob) error {
-	currentTime := time.Now()
-	ttl := job.Spec.TTLSecondsAfterFinished
-	if ttl == nil {
-		// do nothing if the cleanup delay is not set
-		return nil
-	}
-	duration := time.Second * time.Duration(*ttl)
-	if currentTime.After(job.Status.CompletionTime.Add(duration)) {
-		err := pc.deleteXGboostJobHandler(job)
-		if err != nil {
-			pylogger.LoggerForJob(job).Warnf("Cleanup PyTorchJob error: %v.", err)
-			return err
-		}
-		return nil
-	}
-	key, err := KeyFunc(job)
-	if err != nil {
-		pylogger.LoggerForJob(job).Warnf("Couldn't get key for pytorchjob object: %v", err)
-		return err
-	}
-	pc.WorkQueue.AddRateLimited(key)
-	return nil
+	///TODO
 }
 
 // deletePyTorchJob deletes the given XGBoostJob.
 func (pc *XGboostController) deleteXGBoostJob(job *v1alpha1.XGBoostJob) error {
-	return pc.jobClientSet.KubeflowV1beta1().XGBoostJobs(job.Namespace).Delete(job.Name, &metav1.DeleteOptions{})
+	///TODO
+}
+
+// syncPyTorchJob syncs the job with the given key if it has had its expectations fulfilled, meaning
+// it did not expect to see any more of its pods/services created or deleted.
+// This function is not meant to be invoked concurrently with the same key.
+func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
+	startTime := time.Now()
+	logger := pylogger.LoggerForKey(key)
+	defer func() {
+		logger.Infof("Finished syncing job %q (%v)", key, time.Since(startTime))
+	}()
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return false, err
+	}
+	if len(namespace) == 0 || len(name) == 0 {
+		return false, fmt.Errorf("invalid job key %q: either namespace or name is missing", key)
+	}
+
+	sharedJob, err := pc.getXGboostJobFromName(namespace, name)
+	if err != nil {
+		if err == errNotExists {
+			logger.Infof("PyTorchJob has been deleted: %v", key)
+			// jm.expectations.DeleteExpectations(key)
+			return true, nil
+		}
+		return false, err
+	}
+
+	job := sharedJob.DeepCopy()
+	jobNeedsSync := pc.satisfiedExpectations(job)
+
+	if pc.Config.EnableGangScheduling {
+		minAvailableReplicas := getTotalReplicas(job)
+		_, err := pc.SyncPodGroup(job, minAvailableReplicas)
+		if err != nil {
+			logger.Warnf("Sync PodGroup %v: %v", job.Name, err)
+		}
+	}
+
+	// Set default for the new job.
+	scheme.Scheme.Default(job)
+
+	var reconcilePyTorchJobsErr error
+	if jobNeedsSync && job.DeletionTimestamp == nil {
+		reconcilePyTorchJobsErr = pc.reconcilePyTorchJobs(job)
+	}
+
+	if reconcilePyTorchJobsErr != nil {
+		return false, reconcilePyTorchJobsErr
+	}
+
+	return true, err
+}
+
+func getTotalReplicas(obj metav1.Object) int32 {
+	job := obj.(*v1alpha1.XGBoostJob)
+	jobReplicas := int32(0)
+	for _, r := range job.Spec.XGBoostReplicaSpecs {
+		jobReplicas += *r.Replicas
+	}
+	return jobReplicas
+}
+
+// reconcilePyTorchJobs checks and updates replicas for each given PyTorchReplicaSpec.
+// It will requeue the job in case of an error while creating/deleting pods/services.
+func (pc *XGboostController) reconcilePyTorchJobs(job *v1alpha1.XGBoostJob) error {
+	///TODO
+}
+
+// satisfiedExpectations returns true if the required adds/dels for the given job have been observed.
+// Add/del counts are established by the controller at sync time, and updated as controllees are observed by the controller
+// manager.
+func (pc *XGboostController) satisfiedExpectations(job *v1alpha1.XGBoostJob) bool {
+	///TODO
 }

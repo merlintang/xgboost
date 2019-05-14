@@ -44,7 +44,7 @@ import (
 )
 
 const (
-	apiVersion = "v1beta1"
+	apiVersion = "v1alpha1"
 )
 
 var (

@@ -1,7 +1,7 @@
 package xgboost
 
 import (
-	"github.com/kubeflow/pytorch-operator/pkg/apis/pytorch/v1beta1"
+	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboost/v1alpha1"
 	common "github.com/kubeflow/tf-operator/pkg/apis/common/v1beta1"
 )
 
@@ -20,14 +20,11 @@ const (
 
 
 // updatePyTorchJobStatus updates the status of the given PyTorchJob.
-func (pc *XGboostController) updateXGBoostJobStatus(job *v1beta1.PyTorchJob) error {
-	_, err := pc.jobClientSet.KubeflowV1beta1().XGBoostJob(job.Namespace).Update(job)
-	return err
+func (pc *XGboostController) updateXGBoostJobStatus(job *v1alpha1.XGBoostJob) error {
+	///TODO
 }
 
 // updatePyTorchJobConditions updates the conditions of the given job.
-func updateXGBoostJobConditions(job *v1beta1.PyTorchJob, conditionType common.JobConditionType, reason, message string) error {
-	condition := newCondition(conditionType, reason, message)
-	setCondition(&job.Status, condition)
-	return nil
+func updateXGBoostJobConditions(job *v1alpha1.XGBoostJob, conditionType common.JobConditionType, reason, message string) error {
+	///TODO
 }
