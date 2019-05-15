@@ -23,12 +23,12 @@ var (
 	errFailedMarshal = fmt.Errorf("failed to marshal the object to XGboostJob")
 )
 
-func (pc *XGboostController) getXGboostJobFromName(namespace, name string) (*v1alpha1.XGBoostJob, error) {
+func (pc *XGBoostController) getXGBoostJobFromName(namespace, name string) (*v1alpha1.XGBoostJob, error) {
 	key := fmt.Sprintf("%s/%s", namespace, name)
-	return pc.getXGboostJobFromKey(key)
+	return pc.getXGBoostJobFromKey(key)
 }
 
-func (pc *XGboostController) getXGboostJobFromKey(key string) (*v1alpha1.XGBoostJob, error) {
+func (pc *XGBoostController) getXGBoostJobFromKey(key string) (*v1alpha1.XGBoostJob, error) {
 	// Check if the key exists.
 	obj, exists, err := pc.jobInformer.GetIndexer().GetByKey(key)
 	logger := pylogger.LoggerForKey(key)

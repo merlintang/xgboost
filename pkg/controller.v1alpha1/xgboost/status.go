@@ -20,7 +20,7 @@ const (
 
 
 // updateXGBoostJobStatus updates the status of the given XGBoostJob.
-func (pc *XGboostController) updateXGBoostJobStatus(job *v1alpha1.XGBoostJob) error {
+func (pc *XGBoostController) updateXGBoostJobStatus(job *v1alpha1.XGBoostJob) error {
 	///TODO
 	return nil
 }

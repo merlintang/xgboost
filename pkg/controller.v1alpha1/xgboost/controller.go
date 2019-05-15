@@ -43,8 +43,8 @@ const (
 	replicaTypeLabel    = "xgboost-replica-type"
 	replicaIndexLabel   = "xgboost-replica-index"
 	labelGroupName      = "group-name"
-	labelXGboostJobName = "xgboost-job-name"
-	labelXGboostJobRole = "xgboost-job-role"
+	labelXGBoostJobName = "xgboost-job-name"
+	labelXGBoostJobRole = "xgboost-job-role"
 )
 
 var (
@@ -56,13 +56,13 @@ var (
 	// DefaultXGboostControllerConfiguration is the suggested operator configuration for production.
 	DefaultXGboostControllerConfiguration = job_controller.JobControllerConfiguration{
 		ReconcilerSyncLoopPeriod: metav1.Duration{Duration: 15 * time.Second},
-		EnableGangScheduling:     false,
+		EnableGangScheduling:     true,
 	}
 )
 
 // XGBoostController is the type for XGBoostJob Controller, which manages
 // the lifecycle of XGboostJobs.
-type XGboostController struct {
+type XGBoostController struct {
 	job_controller.JobController
 
 	// jobClientSet is a clientset for CRD XGBoostJob.
@@ -80,7 +80,7 @@ type XGboostController struct {
 	// jobInformer is a temporary field for unstructured informer support.
 	jobInformer cache.SharedIndexInformer
 
-	// Listers for XGBoostJob, Pod and Service
+	// lister for XGBoostJob, Pod and Service
 	// jobLister can list/get jobs from the shared informer's store.
 	jobLister joblisters.XGBoostJobLister
 
@@ -92,7 +92,7 @@ type XGboostController struct {
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
-func (pc *XGboostController) Run(threadiness int, stopCh <-chan struct{}) error {
+func (pc *XGBoostController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer pc.WorkQueue.ShutDown()
 
@@ -122,14 +122,14 @@ func (pc *XGboostController) Run(threadiness int, stopCh <-chan struct{}) error 
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (pc *XGboostController) runWorker() {
+func (pc *XGBoostController) runWorker() {
 	for pc.processNextWorkItem() {
 	}
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
-func (pc *XGboostController) processNextWorkItem() bool {
+func (pc *XGBoostController) processNextWorkItem() bool {
 	obj, quit := pc.WorkQueue.Get()
 	if quit {
 		return false
@@ -149,7 +149,7 @@ func (pc *XGboostController) processNextWorkItem() bool {
 
 	logger := pylogger.LoggerForKey(key)
 
-	xgboostjob, err := pc.getXGboostJobFromKey(key)
+	xgboostjob, err := pc.getXGBoostJobFromKey(key)
 	if err != nil {
 		if err == errNotExists {
 			logger.Infof("XGBoostJob has been deleted: %v", key)
@@ -160,7 +160,7 @@ func (pc *XGboostController) processNextWorkItem() bool {
 		logger.Errorf("Failed to get XGBoostJob from key %s: %v", key, err)
 		if err == errFailedMarshal {
 			errMsg := fmt.Sprintf("Failed to unmarshal the object to XGBoostJob object: %v", err)
-			/// pylogger.LoggerForJob(xgboostjob).Warn(errMsg)
+			//pylogger.LoggerForJob(xgboostjob).Warn(errMsg)
 			pc.Recorder.Event(xgboostjob, v1.EventTypeWarning, failedMarshalXGBoostJobReason, errMsg)
 		}
 
@@ -184,48 +184,48 @@ func (pc *XGboostController) processNextWorkItem() bool {
 
 
 
-func (pc *XGboostController) GetJobFromInformerCache(namespace, name string) (metav1.Object, error) {
-	return pc.getXGboostJobFromName(namespace, name)
+func (pc *XGBoostController) GetJobFromInformerCache(namespace, name string) (metav1.Object, error) {
+	return pc.getXGBoostJobFromName(namespace, name)
 }
 
-func (pc *XGboostController) GetJobFromAPIClient(namespace, name string) (metav1.Object, error) {
+func (pc *XGBoostController) GetJobFromAPIClient(namespace, name string) (metav1.Object, error) {
 	////TODO
 	return nil, nil
 }
 
-func (pc *XGboostController) GetAPIGroupVersionKind() schema.GroupVersionKind {
+func (pc *XGBoostController) GetAPIGroupVersionKind() schema.GroupVersionKind {
 	return v1alpha1.SchemeGroupVersionKind
 }
 
-func (pc *XGboostController) GetAPIGroupVersion() schema.GroupVersion {
+func (pc *XGBoostController) GetAPIGroupVersion() schema.GroupVersion {
 	return v1alpha1.SchemeGroupVersion
 }
 
-func (pc *XGboostController) GetGroupNameLabelKey() string {
+func (pc *XGBoostController) GetGroupNameLabelKey() string {
 	return labelGroupName
 }
 
-func (pc *XGboostController) GetJobNameLabelKey() string {
-	return labelXGboostJobName
+func (pc *XGBoostController) GetJobNameLabelKey() string {
+	return labelXGBoostJobName
 }
 
-func (pc *XGboostController) GetGroupNameLabelValue() string {
+func (pc *XGBoostController) GetGroupNameLabelValue() string {
 	return v1alpha1.GroupName
 }
 
-func (pc *XGboostController) GetReplicaTypeLabelKey() string {
+func (pc *XGBoostController) GetReplicaTypeLabelKey() string {
 	return replicaTypeLabel
 }
 
-func (pc *XGboostController) GetReplicaIndexLabelKey() string {
+func (pc *XGBoostController) GetReplicaIndexLabelKey() string {
 	return replicaIndexLabel
 }
 
-func (pc *XGboostController) GetJobRoleKey() string {
-	return labelXGboostJobRole
+func (pc *XGBoostController) GetJobRoleKey() string {
+	return labelXGBoostJobName
 }
 
-func (pc *XGboostController) ControllerName() string {
+func (pc *XGBoostController) ControllerName() string {
 	return controllerName
 }
 

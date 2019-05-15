@@ -22,11 +22,11 @@ const (
 )
 
 // When a pod is added, set the defaults and enqueue the current xgboostjob.
-func (pc *XGboostController) addXGBoostJob(obj interface{}) {
+func (pc *XGBoostController) addXGBoostJob(obj interface{}) {
 	/// TODO
 }
 
-func (pc *XGboostController) enqueueXGBoostJob(job interface{}) {
+func (pc *XGBoostController) enqueueXGBoostJob(job interface{}) {
 	key, err := KeyFunc(job)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for job object %#v: %v", job, err))
@@ -38,7 +38,7 @@ func (pc *XGboostController) enqueueXGBoostJob(job interface{}) {
 }
 
 // When a pod is updated, enqueue the current xgboostjob.
-func (pc *XGboostController) updateXGBoostJob(old, cur interface{}) {
+func (pc *XGBoostController) updateXGBoostJob(old, cur interface{}) {
 	oldXGBJob, err := jobFromUnstructured(old)
 	if err != nil {
 		return
@@ -47,7 +47,7 @@ func (pc *XGboostController) updateXGBoostJob(old, cur interface{}) {
 	pc.enqueueXGBoostJob(cur)
 }
 
-func (pc *XGboostController) deletePodsAndServices(job *v1alpha1.XGBoostJob, pods []*v1.Pod) error {
+func (pc *XGBoostController) deletePodsAndServices(job *v1alpha1.XGBoostJob, pods []*v1.Pod) error {
 	if len(pods) == 0 {
 		return nil
 	}
@@ -69,13 +69,13 @@ func (pc *XGboostController) deletePodsAndServices(job *v1alpha1.XGBoostJob, pod
 	return nil
 }
 
-func (pc *XGboostController) cleanupXGBoostJob(job *v1alpha1.XGBoostJob) error {
+func (pc *XGBoostController) cleanupXGBoostJob(job *v1alpha1.XGBoostJob) error {
 	///TODO
 	return nil
 }
 
 // deleteXGBoostJob deletes the given XGBoostJob.
-func (pc *XGboostController) deleteXGBoostJob(job *v1alpha1.XGBoostJob) error {
+func (pc *XGBoostController) deleteXGBoostJob(job *v1alpha1.XGBoostJob) error {
 	///TODO
 	return nil
 }
@@ -83,7 +83,7 @@ func (pc *XGboostController) deleteXGBoostJob(job *v1alpha1.XGBoostJob) error {
 // syncXGBoostJob syncs the job with the given key if it has had its expectations fulfilled, meaning
 // it did not expect to see any more of its pods/services created or deleted.
 // This function is not meant to be invoked concurrently with the same key.
-func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
+func (pc *XGBoostController) syncXGBoostJob(key string) (bool, error) {
 	startTime := time.Now()
 	logger := pylogger.LoggerForKey(key)
 	defer func() {
@@ -98,7 +98,7 @@ func (pc *XGboostController) syncXGBoostJob(key string) (bool, error) {
 		return false, fmt.Errorf("invalid job key %q: either namespace or name is missing", key)
 	}
 
-	sharedJob, err := pc.getXGboostJobFromName(namespace, name)
+	sharedJob, err := pc.getXGBoostJobFromName(namespace, name)
 	if err != nil {
 		if err == errNotExists {
 			logger.Infof("XGBoostJob has been deleted: %v", key)
@@ -145,7 +145,7 @@ func getTotalReplicas(obj metav1.Object) int32 {
 
 // reconcileXGBoostJobs checks and updates replicas for each given XGBoostJobReplicaSpec.
 // It will requeue the job in case of an error while creating/deleting pods/services.
-func (pc *XGboostController) reconcileXGBoostJobs(job *v1alpha1.XGBoostJob) error {
+func (pc *XGBoostController) reconcileXGBoostJobs(job *v1alpha1.XGBoostJob) error {
 	///TODO
 	return nil
 }
@@ -153,7 +153,7 @@ func (pc *XGboostController) reconcileXGBoostJobs(job *v1alpha1.XGBoostJob) erro
 // satisfiedExpectations returns true if the required adds/dels for the given job have been observed.
 // Add/del counts are established by the controller at sync time, and updated as controllees are observed by the controller
 // manager.
-func (pc *XGboostController) satisfiedExpectations(job *v1alpha1.XGBoostJob) bool {
+func (pc *XGBoostController) satisfiedExpectations(job *v1alpha1.XGBoostJob) bool {
 	///TODO
 	return false
 }
