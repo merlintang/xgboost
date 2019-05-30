@@ -169,3 +169,36 @@ func (r *ReconcileXGBoostJob) UpdateJobStatusInApiServer(job interface{}, jobSta
 	}
 	return r.Status().Update(context.Background(), xgbjob)
 }
+
+func (r *ReconcileXGBoostJob) ControllerName() string {
+	return "xgb-operator"
+}
+
+func (r *ReconcileXGBoostJob) GetAPIGroupVersionKind() schema.GroupVersionKind {
+	return v1alpha1.SchemeGroupVersionKind
+}
+
+func (r *ReconcileXGBoostJob) GetAPIGroupVersion() schema.GroupVersion {
+	return v1alpha1.SchemeGroupVersion
+}
+
+func (r *ReconcileXGBoostJob) GetGroupNameLabelValue() string {
+	return v1alpha1.GroupName
+}
+
+func (r *ReconcileXGBoostJob) GetDefaultContainerName() string {
+	return v1alpha1.DefaultContainerName
+}
+
+func (r *ReconcileXGBoostJob) GetDefaultContainerPortNumber() string {
+	return string(v1alpha1.DefaultPort)
+}
+
+func (r *ReconcileXGBoostJob) GetJobRoleKey() string {
+	return ""
+}
+
+func (XGBoostController) IsMasterRole(replicas map[common.ReplicaType]*common.ReplicaSpec,
+	rtype common.ReplicaType, index int) bool {
+	return string(rtype) == string(v1alpha1.XGBoostReplicaTypeMaster)
+}
