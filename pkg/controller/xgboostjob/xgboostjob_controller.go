@@ -22,17 +22,27 @@ import (
 	"github.com/kubeflow/common/job_controller/api/v1"
 	"github.com/kubeflow/xgboost-operator/pkg/apis/xgboostjob/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	k8scontroller "k8s.io/kubernetes/pkg/controller"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+)
+
+const (
+	controllerName      = "xgboostjob-operator"
+	labelXGBoostJobRole = "xgboostjob-job-role"
 )
 
 var log = logf.Log.WithName("controller")
@@ -50,7 +60,24 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileXGBoostJob{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+
+	r := &ReconcileXGBoostJob{
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+	}
+
+	r.recorder = mgr.GetRecorder(r.ControllerName())
+
+	// Initialize common job controller with components we only need.
+	r.xgbJobController = job_controller.JobController{
+		Controller:   r,
+		Expectations: k8scontroller.NewControllerExpectations(),
+		Config:       v1.JobControllerConfiguration{EnableGangScheduling: true},
+		WorkQueue:    &FakeWorkQueue{},
+		Recorder:     r.recorder,
+	}
+
+	return r
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -67,12 +94,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by XGBoostJob - change this for objects you create
 	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &v1alpha1.XGBoostJob{},
 	})
+	if err != nil {
+		return err
+	}
+
+	//inject watching for  xgboostjob related pod
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.XGBoostJob{},
+	},
+		predicate.Funcs{CreateFunc: onDependentCreateFunc(r), DeleteFunc: onDependentDeleteFunc(r)},
+	)
+	if err != nil {
+		return err
+	}
+
+	//inject watching for xgboostjob related service
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.XGBoostJob{},
+	},
+		&predicate.Funcs{CreateFunc: onDependentCreateFunc(r), DeleteFunc: onDependentDeleteFunc(r)},
+	)
 	if err != nil {
 		return err
 	}
@@ -87,6 +134,7 @@ type ReconcileXGBoostJob struct {
 	client.Client
 	scheme           *runtime.Scheme
 	xgbJobController job_controller.JobController
+	recorder         record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a XGBoostJob object and makes changes based on the state read
@@ -135,27 +183,6 @@ func (r *ReconcileXGBoostJob) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconcile.Result{}, err
 }
 
-// satisfiedExpectations returns true if the required adds/dels for the given job have been observed.
-// Add/del counts are established by the controller at sync time, and updated as controllees are observed by the controller
-// manager.
-func (r *ReconcileXGBoostJob) satisfiedExpectations(xgbJob *v1alpha1.XGBoostJob) bool {
-	satisfied := false
-	key, err := job_controller.KeyFunc(xgbJob)
-	if err != nil {
-		return false
-	}
-	for rtype := range xgbJob.Spec.XGBReplicaSpecs {
-		// Check the expectations of the pods.
-		expectationPodsKey := job_controller.GenExpectationPodsKey(key, string(rtype))
-		satisfied = satisfied || r.xgbJobController.Expectations.SatisfiedExpectations(expectationPodsKey)
-
-		// Check the expectations of the services.
-		expectationServicesKey := job_controller.GenExpectationServicesKey(key, string(rtype))
-		satisfied = satisfied || r.xgbJobController.Expectations.SatisfiedExpectations(expectationServicesKey)
-	}
-	return satisfied
-}
-
 // UpdateJobStatusInApiServer updates the job status in to cluster.
 func (r *ReconcileXGBoostJob) UpdateJobStatusInApiServer(job interface{}, jobStatus *v1.JobStatus) error {
 	xgbjob, ok := job.(*v1alpha1.XGBoostJob)
@@ -171,7 +198,7 @@ func (r *ReconcileXGBoostJob) UpdateJobStatusInApiServer(job interface{}, jobSta
 }
 
 func (r *ReconcileXGBoostJob) ControllerName() string {
-	return "xgb-operator"
+	return controllerName
 }
 
 func (r *ReconcileXGBoostJob) GetAPIGroupVersionKind() schema.GroupVersionKind {
@@ -195,10 +222,20 @@ func (r *ReconcileXGBoostJob) GetDefaultContainerPortNumber() string {
 }
 
 func (r *ReconcileXGBoostJob) GetJobRoleKey() string {
-	return ""
+	return labelXGBoostJobRole
 }
 
-func (XGBoostController) IsMasterRole(replicas map[common.ReplicaType]*common.ReplicaSpec,
-	rtype common.ReplicaType, index int) bool {
+func (r *ReconcileXGBoostJob) IsMasterRole(replicas map[v1.ReplicaType]*v1.ReplicaSpec,
+	rtype v1.ReplicaType, index int) bool {
 	return string(rtype) == string(v1alpha1.XGBoostReplicaTypeMaster)
+}
+
+// SetClusterSpec sets the cluster spec for the pod
+func (r *ReconcileXGBoostJob) SetClusterSpec(job interface{}, podTemplate *corev1.PodTemplateSpec, rtype, index string) error {
+	_, ok := job.(*v1alpha1.XGBoostJob)
+	if !ok {
+		return fmt.Errorf("%+v is not a type of XGBoostJob", job)
+	}
+	// TODO to implement this for the next pr
+	return nil
 }
