@@ -14,8 +14,8 @@ package xgboostjob
 
 import (
 	"context"
-	"flag"
-	"path/filepath"
+	//"flag"
+	//"path/filepath"
 
 	"github.com/kubeflow/common/job_controller"
 	"github.com/kubeflow/common/job_controller/api/v1"
@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
+	// "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	k8scontroller "k8s.io/kubernetes/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,27 +78,28 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 	r.recorder = mgr.GetRecorder(r.ControllerName())
 
-	var kubeconfig *string
+	/*
+		var kubeconfig *string
 
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig_", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig_", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
+		if home := homeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig_", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig_", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
 
-	/// TODO, add the master url and kubeconfigpath with user input
-	kcfg, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		log.Info("Error building kubeconfig: %s", err.Error())
-		panic(err.Error())
-	}
+		/// TODO, add the master url and kubeconfigpath with user input
+		kcfg, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			log.Info("Error building kubeconfig: %s", err.Error())
+			panic(err.Error())
+		}
 
-	// Create clients.
-	kubeClientSet, _, kubeBatchClientSet, err := createClientSets(kcfg)
-	if err != nil {
-		log.Info("Error building kubeclientset: %s", err.Error())
-	}
+		// Create clients.
+		kubeClientSet, _, kubeBatchClientSet, err := createClientSets(kcfg)
+		if err != nil {
+			log.Info("Error building kubeclientset: %s", err.Error())
+		}*/
 
 	xgboostjob := &v1alpha1.XGBoostJob{}
 
@@ -108,13 +109,13 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 	// Initialize common job controller with components we only need.
 	r.xgbJobController = job_controller.JobController{
-		Controller:         r,
-		Expectations:       k8scontroller.NewControllerExpectations(),
-		Config:             v1.JobControllerConfiguration{EnableGangScheduling: gangScheduling},
-		WorkQueue:          &FakeWorkQueue{},
-		Recorder:           r.recorder,
-		KubeClientSet:      kubeClientSet,
-		KubeBatchClientSet: kubeBatchClientSet,
+		Controller:   r,
+		Expectations: k8scontroller.NewControllerExpectations(),
+		Config:       v1.JobControllerConfiguration{EnableGangScheduling: gangScheduling},
+		WorkQueue:    &FakeWorkQueue{},
+		Recorder:     r.recorder,
+		// KubeClientSet:      kubeClientSet,
+		// KubeBatchClientSet: kubeBatchClientSet,
 	}
 
 	return r
