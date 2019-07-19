@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
           - name: xgboostjob
-            image: docker.io/merlintang/xgboost-dist-iris:1.1
+            image: reg.docker.alibaba-inc.com/kubemaker/xgboost-dist-iris:1.0
             ports:
             - containerPort: 9991
               name: xgboostjob-port
@@ -35,7 +35,7 @@ spec:
         spec:
           containers:
           - name: xgboostjob
-            image: docker.io/merlintang/xgboost-dist-iris:1.1
+            image: reg.docker.alibaba-inc.com/kubemaker/xgboost-dist-iris:1.0
             ports:
             - containerPort: 9991
               name: xgboostjob-port
